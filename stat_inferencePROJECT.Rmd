@@ -1,0 +1,695 @@
+---
+title: 'Exam Template: Statistical Inference Resit'
+author: '20048162'
+date: '2021'
+output:
+  html_document: default
+  word_document: default
+RStudio Version: insert version of RStudio here (e.g. 1.0.143)
+Operating System: Windows
+RVersion: 4.1.1
+editor_options:
+  markdown:
+    wrap: sentence
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(error = TRUE)
+```
+
+# Instructions for candidates
+
+You should use the file Exam_template.Rmd provided on blackboard and you should load this file from your scripts folder / directory.
+
+Save this template as your studentID.Rmd; you will upload this file as your submission.
+Complete the information in the YAML at the top of this file -- indicating what version of R you are working with, and your operating system.
+
+Ensure that you save your data into your data folder (as discussed in class).
+You may use the files mypackages.R and helperFunctions.R; if you use these, do not alter them.
+If you wish to create additional files for custom functions that you have prepared in advance, make sure that you upload these in addition to your .Rmd file.
+
+Any changes that you make to the data (e.g. variable name changes) should be made entirely within R.
+
+The author of this document should be set to **your student ID**.
+Do not change the authorship to your name.
+
+The subsubsections labelled **Answer** indicate where you should put in your written answers.
+The template also provides blank code chunks for you to complete your answers; you may choose to add additional chunks if required.
+
+```{r libraries, include=FALSE}
+# load required libraries / additional files
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+library(assertr)
+library(ggpubr)
+library(performance)
+library(lme4)
+library(see)
+library(MASS)
+library(summarytools)
+library(lubridate)                  
+library(readxl)
+library(corrplot)
+library(flextable)
+library(psych)
+
+if(!require(patchwork)){
+    install.packages("patchwork", repos = "https://www.stats.bris.ac.uk/R/")
+    library(patchwork)
+}
+#install.packages('patchwork')
+library(patchwork)
+```
+
+```{r data}
+# load dataset
+SeoulBike<-read.csv("BikeData_forResit.csv")
+```
+
+# Data description
+
+This dataset is a part of a dataset describing the number of bikes hired every hour as part of a bike sharing scheme in Seoul, South Korea.
+You have been asked to create a statistical model to help explain the variation in the number of bikes hired each hour.
+Firstly, use your *studentID multiplied by two* as a seed and select (but *retain the order*) 5000 rows of observations as a subset of data to use in this analysis.
+
+For simplicity, further analysis will only use *Spring days* that are *not holidays* and only use *daylight hours* defined by having solar radiation (MJ/m2) values greater than 0 when the scheme was functioning.
+Note that South Korea does not have daylight savings time -- so you don't have issues with time changing during spring.
+This subset of the data is what you should use for the rest of this assessment.
+
+# Question 1: Data Preparation (11 marks)
+
+a.  Explain what data preparation is required for this analysis.
+
+**(4 marks)**
+
+### Answer:
+
+1.  **Load in the data into R**
+
+    i\.
+    Read in the data
+
+    ii\.
+    Display the data frame in a separate tab for better viewing of the data frame
+
+    iii\.
+    Check the internal structure of the data frame by displaying it
+
+2.  **Remove all special characters with special interpretation in R from the column names**
+
+    i\.
+    Remove&Replace all DOTs with a white space in the column name
+
+    ii\.
+    Remove&Replace all white spaces more than one with a single space in the column names
+
+    iii\.
+    Remove NUMBERS from some of the column names
+
+3.  **Missing Data In The Rows/Columns**
+
+<!-- -->
+
+      i.  Check if there exist null values
+
+      ii. Remove all null values if any 
+
+4.  **Create new column useful for the analysis**
+
+5.  **Convert all columns to the proper datatype required for the analysis**
+
+    i\.
+    Convert (character) ***strings*** to ***factors***
+
+6.  **Filter the dataset based on the conditions highlighted in the data description**
+
+<!-- -->
+
+i.  look at summer days: Select from the dataset only (SUMMER) days in the season.
+
+ii. Not holidays: selecting summer days that are not holidays (NO HOLIDAY)
+
+iii. Solar radiation (MJ/m2) values greater than 0: from the Solar radiation (MJ/m2) column only DAYLIGHT hours are to be selected
+
+<!-- -->
+
+7.  **initialize a pseudorandom number generator (SETSEED)**
+
+8.  **Select The Sample To Be Used For The Analysis** not neglecting the statement *but retain the order* in the instruction given, use the *order* function to sort the data.
+
+<!-- -->
+
+b.  Implement the required preparation in the code chunk below:
+
+**(7 marks)**
+
+### Answer:
+
+-   **Load in the data into R**
+
+```{r dataprep}
+
+# reads in the soulbike dataset into the markdown
+SeoulBike<-read.csv("BikeData_forResit.csv")
+
+#Display the data frame in a separate tab for better viewing of the data frame
+View(SeoulBike)
+
+#Check the internal structure of the data frame by displaying it
+str(SeoulBike)
+```
+
+-   **Remove all special characters with special interpretation in R from the column names**
+
+```{r special charater}
+#remove/replace  all DOTs with a white space in the column name 
+names(SeoulBike)<- gsub("\\.", " ",names(SeoulBike))
+
+#remove/replace all spaces more than one with a single space in the column names 
+names(SeoulBike)<- str_trim(gsub("\\s+", " ", names(SeoulBike)))
+```
+
+-   **Missing Data In The Rows/Columns**
+
+```{r}
+#Check if there exist missing values
+sum(is.na(SeoulBike))
+
+#Remove all missing values if any 
+
+```
+
+-   **Convert all columns to the proper datatype required for the analysis**
+
+```{r}
+#Convert (character) strings to factors
+SeoulBike$Seasons <- as.factor(SeoulBike$Seasons)
+
+SeoulBike$Holiday <- as.factor(SeoulBike$Holiday)
+
+SeoulBike$`Functioning Day` <- as.factor(SeoulBike$`Functioning Day`)
+
+SeoulBike$Date <- as.Date(SeoulBike$Date, "%d/%m/%Y")
+
+str(SeoulBike)
+```
+
+-   **Creating new column useful for the analysis**
+
+```{r}
+months<-format(SeoulBike$Date,"%m")
+years<-format(SeoulBike$Date,"%y")
+days<-format(SeoulBike$Date,"%d")
+
+SeoulBikes<-cbind(SeoulBike,years,months,days)
+str(SeoulBikes)
+
+```
+
+-   **convert the new columns to integers**
+
+```{r}
+SeoulBikes$years <- as.integer(SeoulBikes$years)
+SeoulBikes$months <- as.integer(SeoulBikes$months)
+SeoulBikes$days <- as.integer(SeoulBikes$days)
+```
+
+-   **Filter the dataset based on the conditions highlighted in the data description**
+
+```{r filter}
+
+#look at summer days: Select from the dataset only (SUMMER) days in the season.
+SeoulBikes <- SeoulBikes %>% filter(Seasons=="Spring") 
+
+#Not holidays: selecting summer days that are not holidays (NO HOLIDAY)
+SeoulBikes <- SeoulBikes %>% filter(Holiday=="No Holiday")
+
+#Solar radiation (MJ/m2) values greater than 0: from the Solar radiation (MJ/m2) column, only DAYLIGHT hours are to be selected                   
+SeoulBikes <- SeoulBikes %>% filter(`Solar Radiation MJ m2`> 0)
+
+SeoulBikes <-SeoulBikes %>% filter(`Functioning Day`=="Yes")
+
+
+str(SeoulBikes)
+view(SeoulBikes)
+ #Alternatively 
+#SeoulBike <- SeoulBike %>% filter(Holiday=="No Holiday", Seasons=="Summer", `Solar Radiation MJ m2`> 0)
+
+```
+
+-   **initialize a pseudorandom number generator (SETSEED) using my student ID**
+
+```{r}
+set.seed(20048162*2)
+```
+
+-   **Select The Sample To Be Used For The Analysis**
+
+```{r}
+
+#taking 5000 random samples to work on, this code overwrite the original data
+
+
+SeoulBike_sample<-(sample_n(SeoulBikes,5000,ordered= TRUE,replace = TRUE))
+
+SeoulBike_ord <-SeoulBike_sample[order((SeoulBike_sample$Date),(SeoulBike_sample$Hour)),]
+#View(SeoulBike_ord)
+```
+
+# Question 2: Exploratory Data Analysis (22 marks)
+
+## Descriptive Statistics
+
+a.  What descriptive statistics would be appropriate for this dataset? Explain why these are useful in this context.
+
+**(2 marks)**
+
+### Answer
+
+(you may want to group variables)
+
+*1* Measures of Frequency: Count, Percent, Frequency.
+*2* Measures of Central Tendency: Mean, Median, and Mode.
+*2* Measures of Variation: Range, Variance, Standard Deviation
+
+b.  Perform those descriptive statistics in the code chunk below:
+
+**(4 marks)**
+
+### Answer:
+
+```{r DescriptiveStats}
+#Data Frame Summary
+View(dfSummary(SeoulBike_ord)) 
+```
+
+```{r DescriptiveStats 1}
+#general summary of Bike Bookings 
+flextable(describeBy(SeoulBike_ord$`Rented Bike Count`))
+
+```
+
+*summary of total bike bookings for day light hours*
+
+```{r group_by}
+by_hour<- SeoulBike_ord %>% group_by(Hour)
+
+Rentedbike_by_hour<-by_hour %>% summarise(total_Rent=sum(`Rented Bike Count`),Average_Rent= mean(`Rented Bike Count`),Max_Rent=max(`Rented Bike Count`),Min_Rent=min(`Rented Bike Count`),)
+
+flextable(Rentedbike_by_hour)
+#View(Rentedbike)
+```
+
+*summary of Bike Bookings per DAY*
+
+```{r}
+
+by_day<-SeoulBike_ord %>% group_by(days)
+
+
+Rentedbike_by_day<-by_day %>% summarise(total_Rent=sum(`Rented Bike Count`),Average_Rent= mean(`Rented Bike Count`),Max_Rent=max(`Rented Bike Count`),Min_Rent=min(`Rented Bike Count`))
+
+flextable(Rentedbike_by_day)
+
+```
+
+*summary of Bike Bookings per MONTHS*
+
+```{r}
+
+by_month<-SeoulBike_ord %>% group_by(months)
+
+
+Rentedbike_by_month<-by_month %>% summarise(total_Rent=sum(`Rented Bike Count`),Average_Rent= mean(`Rented Bike Count`),Max_Rent=max(`Rented Bike Count`),Min_Rent=min(`Rented Bike Count`))
+
+flextable(Rentedbike_by_month)
+
+```
+
+*summary of Bike Bookings per YEAR*
+
+```{r}
+
+
+by_year<-SeoulBike_ord %>% group_by(years)
+
+
+Rentedbike_by_year<-by_year %>% summarise(total_Rent=sum(`Rented Bike Count`),Average_Rent= mean(`Rented Bike Count`),Max_Rent=max(`Rented Bike Count`),Min_Rent=min(`Rented Bike Count`))
+
+flextable(Rentedbike_by_year)
+
+```
+
+*considering number of bikes rented GROUP BY Seasons*
+
+```{r group_by Seasons}
+by_Seasons<- SeoulBike_ord %>% group_by(Seasons)
+
+Rentedbikes<-by_Seasons %>% summarise(total_Rent=sum(`Rented Bike Count`),Average_Rent= mean(`Rented Bike Count`),Max_Rent=max(`Rented Bike Count`),Min_Rent=min(`Rented Bike Count`),)
+
+flextable(Rentedbikes)
+#View(Rentedbike)
+```
+
+c.  What have those descriptive statistics told you -- and how does this inform the analysis that you would undertake on this data or any additional data cleaning requirements?
+
+**(4 marks)**
+
+### Answer:
+
+i.  After the data preparation and the exploratory data analysis, 5000 row and 17 columns were generated with a total number of 5,037,657 bikes hired over the year.
+
+ii. After necessary filters, bikes were hired in only three months(3rd,4th and 5th) of the year with total number of 472,515, 1,675,160 and 2,223,288 respectively.
+
+iii. The highest number bikes hired was recoded in the 5th month while the least number of bikes hired was recorded in the 3rd month
+
+iv. Day 12 and day 23 recorded the least number of bikes hired over the months with just 6 and 9 bookings respectively.
+    This booking were recoded in the 9th and 10th hours of the day.
+
+v.  Average of 1,007.531 bikes was hired in 2018
+
+The data generated by grouping the data frame shows that the sum and average number of bike hired per hour was high at the 8th hour and increases from noon as the hour tends toward 19th hour of the day.
+
+## Exploratory Graphs
+
+d.  What exploratory graphs would be appropriate for this dataset? Explain why these are useful in this context.
+
+**(2 marks)**
+
+### Answer:
+
+1.  Histogram : It is used to summarize discrete or continuous data that are measured on an interval scale
+
+2.  Point & line graph : It is used to track changes over short and long periods of time
+
+3.  Scatter plots : To observe and show relationships between two numeric variables.
+
+4.  Box plot: To provide a visual summary of the data enabling researchers to quickly identify mean values
+
+<!-- -->
+
+e.  Now run those exploratory graphs in the code chunk below:
+
+**(4 marks)**
+
+### Answer:
+
+```{r ExploratoryGraphs}
+
+ggplot(SeoulBike_ord,aes(`Rented Bike Count`))+geom_histogram(colour="blue")+ggtitle("Distribution of total bike hired Over the year")
+```
+
+```{r ExploratoryGraphs2}
+ggplot(Rentedbike_by_hour,aes(Hour,total_Rent))+geom_point(color= "blue")+geom_line(color= "red")+ggtitle("Total number of bikes hired per hour")
+
+```
+
+```{r ExploratoryGraphs3}
+
+ggplot(Rentedbike_by_day,aes(days,total_Rent))+geom_point(color= "blue")+geom_line(color= "red")+ggtitle("Total number of bikes hired per days")
+
+```
+
+```{r ExploratoryGraphs4}
+label<-c("March","April","May")
+
+ggplot(Rentedbike_by_month,aes(months,total_Rent, label= label))+geom_point(color= "blue")+geom_line(color= "red")+ggtitle("Total number of bikes hired per month") + geom_text(aes(label = label), hjust = -0.2)
+
+```
+
+```{r}
+ggplot(SeoulBike_ord, aes(x=`Temperature`, y=`Rented Bike Count`, color = months)) +  geom_point()+geom_smooth(method=lm)
+```
+
+```{r}
+library("ggpubr")
+  ggscatter(SeoulBike_ord, x="Temperature", y="Rented Bike Count", add = "reg.line", conf.int = TRUE, color = "months",
+          cor.coef = TRUE, cor.method = "pearson",
+          xlab = "`Temperature C`", ylab = "`Rented Bike Count`")
+```
+
+```{r}
+ggboxplot(SeoulBike_ord, x="months",y= "Rented Bike Count",color ="months",ylab="Rented Bike Count",xlab="months")
+```
+
+f.  Interpret these exploratory graphs. How may these graphs inform your subsequent analysis?
+
+**(4 marks)**
+
+### Answer:
+
+i.  The histogram shows the interval at which the bikes were hired over the year
+
+ii. The line graph shows the trend of the total number of bikes hired per hour, day, and month respectively.
+
+iii. The graphs also indicated that high number of bikes was hired in the morning at 8am.
+     Towards the ending hours of the day in the evening from 16-20th hours there was relatively high number of bikes hired
+
+iv. the scatter graph shows the relationships between two temperature and number of bikes hired.
+
+v.  The highest number of bikes hired was recorded in the 7th and 8th days and in the 6th month.
+
+vi. The box plot shows the central tendency of the hired bike count, the thick line in the middle indicate median,it also indicate that there was high number of rented bike in the 6th month of the year, also towards the ending hours of the day there was relatively high bike rent.
+
+## Correlations
+
+g.  What linear correlations are present within this data?
+
+**(2 marks)**
+
+### Answer
+
+-   **correlation matrix**
+
+```{r linearcor}
+SeoulBike_ord= subset(SeoulBike_ord, select = -c(`Rainfall mm`,`Snowfall cm`,years))
+
+SeoulBike_ord <-SeoulBike_ord %>% select_if(is.numeric)
+corr<-cor(SeoulBike_ord)
+corrplot(corr,method = "square")
+```
+
+The correlation plot explains the association between each of the variables in the data frame.
+Positive correlations are displayed in blue and negative correlations in red colour.
+Colour intensity and the size of the circle are proportional to the level of correlation between the variables which is also proportional to the correlation coefficients.
+In the right side of the correlogram, the legend colour shows the correlation coefficients and the corresponding colours.
+
+-   **to compute correlation coefficient for several pairs of variables**
+
+```{r}
+round(cor(SeoulBike_ord), digits = 2)
+```
+
+# Question 3: Bivariate relationship (14 marks)
+
+a.  Which of the potential explanatory variables has the strongest linear relationship with the dependent variable?
+
+**(1 mark)**
+
+### Answer:
+
+**considering the statistical relationship between bikes hired and other variables, as well as the linear relationship between each variables:** i.
+there is a moderately strong positive high linear correlation between the `Rented Bike Count` and the `hour`
+
+i.  there is a moderately strong positive high linear correlation between the `Rented Bike Count` and the `Temperature`
+
+ii. there is a strong negative linear correlation between the `Humidity` and the `Solar Radiation MJ             m2`
+
+iii. there is a moderately strong positive high linear correlation between the `Temperature` and the `months`
+
+iv. there is a strong negative linear correlation between the `Humidity` and the `Temperature`
+
+v.  there is a strong negative linear correlation between the `Wind speed m s` and the \``Temperature`
+
+From the correlation matrix above, it can be seen that the potential explanatory variable with the strongest relationship with the number of bikes hired (`Rented Bike Count`) is `Temperature` with r= 0.56.
+
+```{r}
+library("ggpubr")
+  ggscatter(SeoulBike_ord, x="Temperature", y="Rented Bike Count", 
+          add = "reg.line", conf.int = TRUE, title = "Relationship Between Rented Bike Count and temperature ",
+          subtitle = "Bike Rents  by Hour", 
+          cor.coef = TRUE, cor.method = "pearson",
+          xlab = "Hour", ylab = "Rented Bike Count")
+```
+
+b.  Create a linear model to model this relationship.
+
+**(2 marks)**
+
+### Answer:
+
+```{r model1}
+Lmodel<-lm(`Rented Bike Count` ~ Temperature, data =SeoulBike_ord )
+
+summary(Lmodel)
+```
+
+c.  Explain and interpret the model:
+
+**(3 marks)**
+
+### Answer:
+
+R-squared: measure of the linear relationship between the Temperature of the day and the NUMBER OF BIKE HIRED, about 29% variation in number of bike hired can be explained by the independent variable (Temperature) Also; The R-squared moving close to 1 indicates the goodness of Fit of the model.
+For a P-value of(2.2e-16) relatively less than 0.05, we conclude that there is a significant relationship.
+
+The estimated regression line equation can be written as follow: `Rented Bike Count` = y = a + b (x) $$\text{`Rented Bike Count`} = 194.840 + 53.679\times \text{Temperature}$$
+
+d.  Comment on the performance of this model, including comments on overall model fit and the validity of model assumptions. Include any additional code required for you to make these comments in the code chunk below.
+
+**(4 marks)**
+
+### Answer:
+
+```{r model1performance}
+check_model(Lmodel)
+model_performance(Lmodel)
+```
+
+-   **Considering the performance of the model using the assumptions of linear regression:**
+
+i.  Linearity: It is seen from the scatter plot between `Temprature` and `Rented Bike Count` that the points in the plot falls along a straight line, which indicates that there is a linear relationship between the two variables.
+
+ii. Homogeneity of variance/Homoscedasticity: It can been seen from the The fitted values VS. residual plot that the reference line is flat and horizontal in which heteroscedasticity is present.The residuals become much more spread out as the fitted values get larger.
+
+iii. Normality assumption: It is seen from the normal Q-Q plot that the points/dots in the plot falls on roughly a straight line, which indicates that the residuals are normally distributed.
+     It can also be seen that the distribution is close to the normal curve.
+
+iv. Independence: `Lmodel$residuals` shows the values of the independent residuals.i.e residuals did not steadily grow larger as time goes on, which is good
+
+    In general, the performance of the model seem to be very weak. however, the marginal R-Squared of `0.29`     provides information on the percentage of variations explained by the complete model  
+
+## Bootstrap
+
+e.  Use bootstrapping on this model to obtain a 95% confidence interval of the estimate of the slope parameter.
+
+**(4 marks)**
+
+### Answer:
+
+```{r bootstrap}
+set.seed(20048162*2)
+samples<-nrow(SeoulBike_ord)
+boot_mean<-  function(Nb){
+  Bikemean<-rep(NA,Nb) #replicating NA in Nb times i.e replicating NA                       times
+  for(i in seq_len(Nb)){
+    dump<-SeoulBike_ord$`Rented Bike Count`[sample(seq_len(N),samples,replace=TRUE)]
+    
+    Bikemean[i]<- mean(dump) 
+  }
+  Bikemean<-data.frame(meanbike_count=Bikemean)
+}
+
+```
+
+```{r ci}
+# Bootstrap CI 95%
+N<- nrow(SeoulBike_ord)
+t_value <- qt(0.975, (N-1))
+bike_mean <- mean(SeoulBike_ord$`Rented Bike Count`)
+bike_sd <- sd(SeoulBike_ord$`Rented Bike Count`)
+n <- length(SeoulBike_ord$`Rented Bike Count`)
+bike_se_mean <- bike_sd/sqrt(n)
+lower_ci <- bike_mean-t_value*bike_se_mean 
+upper_ci <-  bike_mean+t_value*bike_se_mean
+sprintf("95 percent CI for the mean: %f - %f", lower_ci, upper_ci)
+
+```
+
+# Question 4: Multivariable relationship (10 marks)
+
+Create a model with all of the appropriate (non-constant) remaining explanatory variables included:
+
+```{r model2}
+Mmodel2<-lm(`Rented Bike Count` ~.,data=SeoulBike_ord)
+
+summary(Mmodel2)
+
+#summary(multilinreg)$coefficient
+```
+
+a.  Explain and interpret the model:
+
+**(4 marks)**
+
+### Answer:
+
+It can be seen that p-value of the F-statistic is \< 2.2e-16, which is relatively less than 0.05 and highly significant.
+This means that, at least, one of the predictor variables is significantly related to the outcome variable(`Rented Bike Count`).
+
+b.  Comment on the performance of this model, including comments on overall model fit and the validity of model assumptions. Include any additional code required for you to make these comments in the code chunk below.
+
+**(4 marks)**
+
+### Answer:
+
+```{r model2performance}
+
+model_performance(Mmodel2)
+                  
+check_model(Mmodel2)
+
+```
+
+c.  What general concerns do you have regarding this model?
+
+**(2 marks)**
+
+### Answer:
+
+coefficient of determination R\^2 value is 0.529 which is moderately good and it means our model is able to predict number of hired bike well.
+
+Also, this value means that the predictor variables explain 52.9% of the variations in number of bike hired.
+
+# Question 5: Model simplification (8 marks)
+
+a.  What approaches for model simplification would you consider implementing and why?
+
+**(4 marks)**
+
+AIC selection criterion, it helps to identify the factors with low information about the outcome variable;AIC criterion removes these factors and leave us with the factors with high information about the outcome variable.
+It basically gets rid of the worst predictors at every step until it reaches a point where it would be removing a good predictor instead of a bad one.
+We should be left with our best predictors after using the stepAIC() command on our model which is a part of the R package MASS.
+
+```{r model4}
+stepAIC(Mmodel2, direction = "both")
+```
+
+b.  What are the potential advantages of simplifying a model?
+
+**(2 marks)** Simplification aids in the distillation of fundamental model structures that cause specific problems, as well as improving model quality and comprehension.
+It can also be a first step in developing theory-like structures and general representations of case-specific problems across a wide range of application fields.
+
+c.  What are the potential disadvantages of simplifying a model?
+
+**(2 marks)**
+
+# Question 6: Reporting (35 marks)
+
+Write a short report for a client based in Manchester explaining your findings, highlighting which model you think is the most appropriate and how that model should be interpreted by the client.
+
+Furthermore, include an explanation as to why you have selected that model and any suggestions for alterations to the model that would be appropriate to consider.
+
+Describe what this Manchester based client could learn about patterns in when bicycles are hired and any data collection recommendations you have for them so that they can optimise the analysis for their situation.
+
+Highlight what may or may not be directly transferable from the scenario analysed here.
+
+### Answer:
+
+I began the whole process by downloading the data, after which I began a general study about the datasets.
+This dataset is a part of a dataset describing the number of bikes hired as part of a bike sharing scheme in Seoul, South Korea.
+These datasets give the basic business insights and variations related to the number of bikes hired from 2017 to 2018.
+This research analysis indicates various factors that could determine the amount of Bike rented count.
+I carried out data exploration on the dataset by shifting through the data in search of some interesting information such as missing values, duplicates, data type of each variable, and summary statistics (frequency distribution, measures of central tendencies, and measures of spread) of the dataset.
+The original data frame contains 8760 observation and 14 variables, after which 5000 samples were selected for the analysis using the given conditions for selection criteria.
+Running through various form of tests on the data shows the linear relationship between each of the variables in the dataset.
+Having the temperature and Hours of the day as the most correlated variables to the dependent variable (rented bike count), I, therefore, group the data by hours, days, and months to find the total, average, maximum, and minimum number of Bike hired, to get the direction and variation in the number of bikes hired per day.
+This grouping then indicates that there was surge in demand of bikes at the early hour of the day (08:00) and there was a dip in request.
+From 12th hours to 19th hours of the day was also an increase in the number bike hired.
+We could say from this that there will be rushing of bike hire in the morning while most people are going to work, so also it was seen from the result that there is a massive increase in Bikes hired towards evening from 12th-19th hours of the day.
+understanding the weather conditions of SeoulBike_ord dataset, after necessary filter, the temperature ranges from -6.2 Celsius to 29.4 Celsius in spring, people experienced high humidity with wind.
+Bookings are favoured by occurring climatic conditions.
+The model analysed favourable conditions for the trend in cycle booking and came to a plausible conclusion that hour of the day is very important mainly due to temperature and Humidity with a slight degree of change depending on wind speed and visibility with hardly any rainfall.
+Haven seen the trend of Bike hired per hour of the day, we then formulate a model that could be adopted by the organization for further prediction of the amount of Bike to be rented per hour, the company could adopt this model to enable them to identify the necessary actions to be put in place as the will be getting towards those hours of the day when there might be high request in Bike.
