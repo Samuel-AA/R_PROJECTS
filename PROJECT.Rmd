@@ -1,0 +1,435 @@
+---
+title: 'Dissertation: META-ANALYSIS OF POTENTIAL FACTORS AFFECTING INFANTS BIRTH WEIGHT. “Maternal Smoking and Infant’s Birth Weight”'
+author: 'Samuel Adenigba'
+date: '2021'
+output:
+  html_document: default
+  word_document: default
+RStudio Version: 4.1.1
+Operating System: Windows
+RVersion: 4.1.1
+editor_options:
+  markdown:
+    wrap: sentence
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(error = TRUE)
+```
+
+```{r packages,echo = FALSE}
+# load required libraries / additional files
+
+if(!require(lubridate))
+    install.packages("lubridate", repos = "https://www.stats.bris.ac.uk/R/")
+    library(lubridate)
+
+if(!require(readxl))
+    install.packages("readxl", repos = "https://www.stats.bris.ac.uk/R/")
+    library(readxl)
+
+if(!require(tidyverse))
+    install.packages("tidyverse", repos = "https://www.stats.bris.ac.uk/R/")
+    library(tidyverse)
+
+if(!require(ggplot2))
+    install.packages("ggplot2", repos = "https://www.stats.bris.ac.uk/R/")
+    library(ggplot2)
+
+
+if(!require(dplyr))
+    install.packages("dplyr", repos = "https://www.stats.bris.ac.uk/R/")
+    library(dplyr)
+
+if(!require(assertr))
+    install.packages("assertr", repos = "https://www.stats.bris.ac.uk/R/")
+    library(assertr)
+
+if(!require(ggpubr))
+    install.packages("ggpubr", repos = "https://www.stats.bris.ac.uk/R/")
+    library(ggpubr)
+
+if(!require(performance))
+    install.packages("performance", repos = "https://www.stats.bris.ac.uk/R/")
+    library(performance)
+
+if(!require(lme4))
+    install.packages("lme4", repos = "https://www.stats.bris.ac.uk/R/")
+    library(lme4)
+
+if(!require(see))
+    install.packages("see", repos = "https://www.stats.bris.ac.uk/R/")
+    library(see)
+
+if(!require(MASS))
+    install.packages("MASS", repos = "https://www.stats.bris.ac.uk/R/")
+    library(MASS)
+
+if(!require(ISLR))
+    install.packages("ISLR", repos = "https://www.stats.bris.ac.uk/R/")
+    library(ISLR)
+
+if(!require(ISLR))
+    install.packages("ISLR", repos = "https://www.stats.bris.ac.uk/R/")
+    library(ISLR)
+
+if(!require(ISLR))
+    install.packages("ISLR", repos = "https://www.stats.bris.ac.uk/R/")
+    library(ISLR)
+
+if(!require(summarytools))
+    install.packages("summarytools", repos = "https://www.stats.bris.ac.uk/R/")
+    #library(summarytools)
+
+if(!require(corrplot))
+    install.packages("corrplot", repos = "https://www.stats.bris.ac.uk/R/")
+    library(corrplot)
+
+if(!require(patchwork))
+    install.packages("patchwork", repos = "https://www.stats.bris.ac.uk/R/")
+    library(patchwork)
+
+if(!require(psych))
+    install.packages("psych", repos = "https://www.stats.bris.ac.uk/R/")
+    library(psych)
+
+if(!require(flextable))
+    install.packages("flextable", repos = "https://www.stats.bris.ac.uk/R/")
+    library(flextable)
+
+if(!require(patchwork))
+    install.packages("patchwork", repos = "https://www.stats.bris.ac.uk/R/")
+    library(patchwork)
+
+```
+
+
+
+```{r}
+# load dataset
+SmkBirthWeight<-read.csv("US_Births_processed.csv")
+
+
+#Display the data frame in a separate tab for better viewing of the data frame
+#View(SmkBirthWeight)
+
+#Check the internal structure of the data frame by displaying it
+str(SmkBirthWeight)
+```
+
+```{r}
+View(SmkBirthWeight)
+head(SmkBirthWeight)
+
+```
+
+
+
+```{r}
+# Renames 
+colnames(SmkBirthWeight)[colnames(SmkBirthWeight)%in% c("ATTEND", "BFACIL","BMI","CIG_0","DBWT","DLMP_MM","DLMP_YY","DMAR","DOB_MM","DOB_TT","DOB_WK ","DOB_YY","DWgt_R","FAGECOMB","FEDUC","FHISPX","FRACE15","FRACE31","FRACE6","ILLB_R")]<- c("Attendant_at_Birth",                             "Birth_Place","Body_Mass_Index","Cigarettes_Before_Pregnancy","Birth_Weight_Grams","Last_Normal_Menses_Month","Last_Normal_Menses_Year","Marital_Status","Birth_Month","Birth_Time","Birth_DayofWeek","Birth_Year","Delivery_Weight_Pounds","Father’s_Combined_Age","Father’s_Education","Father’s_Hispanic_Origin","Father’s_Race_Recode15","Father’s_Race_Recode31","Father’s_Race_Recode6","Interval_Since_Last_Live_Birth_Recode")
+
+View(SmkBirthWeight)
+```
+
+
+
+```{r}
+# Renames 
+colnames(SmkBirthWeight)[colnames(SmkBirthWeight)%in% c("ILOP_R","ILP_R","IP_GON","LD_INDL","MAGER","MAGE_IMPFLG","MAR_IMP", "MBSTATE_REC","MEDUC","MHISPX","MM_AICU","MRACE15","MRACE31","MRACEIMP","MRAVE6","MTRAN","M_Ht_In","NO_INFEC","NO_MMORB","NO_RISKS","PAY","PAY_REC","PRECARE","PREVIS","PRIORDEAD","PRIORLIVE","PRIORTERM","PWgt_R","RDMETH_REC","RESTATUS","RF_CESAR","RF_CESARN","SEX","WTGAIN")]<- c("Interval_Since_Last_Other_Pregnancy_Recode","ILP_R","IP_Gonorrhea","Induction_of_Labor","MAGER","MAGE_IMPFLG","MAR_IMP","Mother’s_Nativity","Mother’s_Education","Mother’s_Hispanic_Origin","Admit_to_Intensive_Care","MRACE15","MRACE31","MRACEIMP","Mother’s_Race_Recode6","Mother_Transferred","Mother’s_Height_Inches","No_Infections_Reported","No_Maternal_Morbidity_Reported","No_Risk_Factors_Reported","PAY","Payment","Month_Prenatal_Care_Began","Number_of_Prenatal_Visits","Prior_Births_Now_Dead","Prior_Births_Now_Living","Prior_Other_Terminations","Pre_pregnancy_Weight_Recode","Delivery_Method_Recode","Residence_Status","Previous_Cesarean","Number_of_Previous_Cesareans","SEX","Weight Gain")  
+
+View(SmkBirthWeight)
+
+```
+
+
+
+```{r}
+#Check if there exist missing values
+sum(is.na(SmkBirthWeight))
+
+
+```
+
+
+
+
+```{r}
+SmkBirthWeight_miss<-na.omit(SmkBirthWeight)
+
+```
+
+```{r}
+#total number of rows and columns 
+dim(SmkBirthWeight)
+dim(SmkBirthWeight_miss)
+```
+
+```{r}
+SmkBirthWeight$pregnancy_length_cat <- as.factor(SmkBirthWeight$pregnancy_length_cat)
+
+SmkBirthWeight$smoked <- as.factor(SmkBirthWeight$smoked)
+
+```
+
+
+**grouped by pregnancy_length**
+
+```{r group_by pregnancy_length}
+
+by_pregnancy_length<- SmkBirthWeight %>% group_by(pregnancy_length_cat)
+
+SmkBirthWeight_by_pregnancy_length<-by_pregnancy_length %>% summarise(Birthweight=DBWT_cat,Birthweight_num=DBWT_ca)
+
+
+SmkBirthWeight_by_pregnancy_length
+#View(Rentedbike)
+```
+
+```{r}
+ggplot(SmkBirthWeight_by_pregnancy_length,aes(pregnancy_length_cat,labels = Birthweight, fill= Birthweight))+geom_histogram(stat="count",colour="blue")+ggtitle("Distribution of Gestation Period")+facet_wrap(~Birthweight)
+```
+
+
+**model pregnancy lenght**
+
+```{r}
+
+summary(lm(Birthweight_num ~ pregnancy_length_cat, data =SmkBirthWeight_by_pregnancy_length))
+
+```
+
+**change to factor variable (pregnancy lenght)**
+
+```{r}
+SmkBirthWeight_by_pregnancy_length$Birthweight <- as.factor(SmkBirthWeight_by_pregnancy_length$Birthweight)
+
+```
+
+**test for significance (pregnancy lenght)**
+
+```{r}
+#cross tabulation for pregnancy lenght 
+con1<-table(SmkBirthWeight_by_pregnancy_length$pregnancy_length_cat,SmkBirthWeight_by_pregnancy_length$Birthweight)
+
+addmargins(con1)
+
+
+prop.table(con1)
+
+#test if the relationship of these two variables is independent or not.
+
+chisq.test(con1)
+
+```
+
+```{r }
+con1
+
+#graphical representation of Birth weight of infant related to their pregnancy lenght 
+mosaicplot(con1, main = " Distribution of infant Birth weight in relation to their pregnancy lenght", color = TRUE)
+
+
+mosaic(con1,main = "  Infant Birth Weight AND  Pregnancy Lenght", shade = TRUE, direction = "v", pop = FALSE)
+labeling_cells(text = as.table(con1),margin = 2)(as.table(con1))
+```
+
+
+
+```{r}
+con11<-as.data.frame(con1)
+con1l <- con11 %>% filter(Var2=="Low") 
+con1h <- con11 %>% filter(Var2=="Normal") 
+ggplot(con1l ,aes(Freq,Var1))+geom_point(colour="blue")+ggtitle("Low birthweight/gestation perios ")
+ggplot(con1h ,aes(Var1,Freq))+geom_point(colour="blue")+ggtitle("Normal birthweight/gestation perios ")
+```
+
+
+**grouped by smmoking rate**
+
+```{r group_by smoke}
+
+by_smoked<- SmkBirthWeight %>% group_by(smoked)
+
+SmkBirthWeight_by_smoked<-by_smoked %>% summarise(Birthweight=DBWT_cat,Birthweight_num=DBWT_ca)
+
+
+SmkBirthWeight_by_smoked
+#View(Rentedbike)
+```
+
+
+```{r Expl}
+
+ggplot(SmkBirthWeight_by_smoked,aes(smoked, fill=Birthweight))+geom_histogram(stat="count",colour="blue",labels = TRUE)+ggtitle("Distribution of  maternal smoking rate during pregnancy")+ facet_wrap(~Birthweight)
+
+ggplot(SmkBirthWeight_by_smoked,aes(Birthweight, fill= smoked,labels = TRUE))+geom_histogram(stat="count",colour="blue",
+)+ggtitle("Distribution of birthweight of infants whoes mother smokes during/before pregnancy")+ facet_wrap(~smoked)
+
+
+```
+
+Birhtweight.
+
+Accurate information on the rate of smoking during pregnancy and the effect on the outcome for the basic data frame is presented in FDi.2. Infant whoes mother smoke 
+
+
+**model smoking rate**
+
+```{r}
+
+summary(lm(Birthweight_num ~ smoked, data =SmkBirthWeight_by_smoked))
+
+```
+
+The result shows that the amount of changes that could be explained in the birth weight by the maternal smoking rate is minimal. However the variation is statistically significant. 
+
+
+**change to factor variable (smoking rate)**
+```{r}
+
+SmkBirthWeight_by_smoked$smoked <- as.factor(SmkBirthWeight_by_smoked$smoked)
+SmkBirthWeight_by_smoked$Birthweight <- as.factor(SmkBirthWeight_by_smoked$Birthweight)
+
+```
+
+```{r Exp}
+
+ggplot(SmkBirthWeight_by_smoked,aes(smoked,Birthweight,stat="count"))+geom_point(color= "blue")+geom_line(color= "red")+ggtitle("distribution of birthweight by smokers")
+
+```
+
+
+```{r}
+#cross tabulation
+con2<-table(SmkBirthWeight_by_smoked$smoked,SmkBirthWeight_by_smoked$Birthweight)
+ftable(addmargins(con2))
+
+prop.table(con2)
+#test if the relationship of these two variables is independent or not.
+
+chisq.test(con2)
+
+```
+in order to obtain accurate information on smoking during pregnancy and its effect on the outcome, Investigation on Birth weight of infant related to their mother smoking rate  was carried out considering pregnant women who smoke daily, those who do not smoke during pregnancy and those who refused to answer the question. the data of the investigation are presented in table 1 and fig. 1.
+The p-value of 2.2e-16 which is less than 0.05 level of significance signifies that the difference between the proportions of low and normal birth weight for daily, non, and unknown smokers  is statistically significant. Though pregnant women who smokes still have high rate of normal birth weight. However the non smokers have higher percentage of normal birth weight. 
+investigation on the research data set shows that pregnant women who does not smoke have the highest rate of normal birth weight, closely followed by those smoke daily ,while pregnant women who chose not to say  if they smoke or not appeared to have the least number normal birth weight.
+As it turns out,the amount of changes  that occurs in birth weight is not majorly determined by how often a pregnant woman smokes. however the changes that occurs is statistically significant  
+
+
+
+```{r}
+con2
+
+#graphical representation of Birth weight of infant related to their mother smoking rate
+mosaicplot(con2, main = " Maternal smoking rate and Birth weight",color = TRUE)
+
+
+
+mosaic(con2,main = " Maternal smoking rate and Birth weight", shade = TRUE, direction = "v", pop = FALSE)
+labeling_cells(text = as.table(con2))(as.table(con2))
+```
+
+ 
+
+
+ 
+ **correlation matrix**
+```{r linearcor}
+
+SmkBirthWeight_cor= subset(SmkBirthWeight_miss, select = c(DBWT,Smoked_Int,WTGAIN,DOB_TT,CIG_0, DWgt_R,MAGER,PREVIS,WT_percent_gain,MOM_weight,FEDUC,MEDUC,FAGECOMB,ILP_R,pregnancy_length,BMI_log,M_Ht_In,PWgt_R))
+
+corr<-round(cor(SmkBirthWeight_cor), digits = 2)
+
+
+corrplot(corr, method = "shade", addCoef.col="black", type="upper", number.cex=0.75)
+
+corrplot(corr,method="circle",type="upper")
+```
+
+
+
+
+
+```{r}
+
+Lmo<-lm(DBWT ~ smoked_int, data =SmkBirthWeight_miss )
+summary(Lmo)
+```
+
+
+
+ **linear regression**
+```{r}
+
+Lmode<-lm(DBWT ~ CIG_0, data =SmkBirthWeight )
+
+```
+
+```{r }
+
+summary(Lmode)
+
+```
+
+
+
+
+**multiple linear regression**
+
+```{r}
+
+# Fit the full model
+
+#SmkBirthWeight_ord = subset(SmkBirthWeight_miss, select = -c(DBWT_ca,pregnancy_length_cat,IP_GON,LD_INDL,MAGE_IMPFLG,MRACEIMP,MTRAN))
+
+SmkBirthWeight_ord <-SmkBirthWeight_miss %>% select_if(is.numeric)
+
+
+full_model<- lm(DBWT_ca ~., data = SmkBirthWeight_ord)
+
+summary(full_model)
+
+```
+
+
+
+**variable selection**
+
+```{r}
+library(MASS)
+step.model <- stepAIC(full_model,direction = "backward", trace = FALSE)
+step.model
+```
+
+
+
+
+
+```{r model1}
+L<-lm(formula = DBWT_ca ~ BMI + DBWT + DLMP_MM + DLMP_YY + DOB_MM + 
+    DOB_WK + ILLB_R + ILOP_R + ILP_R + MRACE31 + PRIORTERM + 
+    first_birth + first_live_birth + first_natal + WT_percent_gain + 
+    smoked_int, data = SmkBirthWeight_ord)
+
+summary(L)
+```
+
+
+
+
+```{r}
+ 
+library("ggpubr")
+  ggscatter(SmkBirthWeight,500, x="Cigarettes_Before_Pregnancy", y="Birth_Weight_Grams", 
+          add = "reg.line", conf.int = TRUE, title = "Relationship Between Cigarettes_Before_Pregnancy and Birth_Weight_Grams ",
+          subtitle = "Bike Rents  by Hour", 
+          cor.coef = TRUE, cor.method = "pearson",
+          xlab = "Cigarettes_Before_Pregnancy", ylab = "Birth_Weight_Grams") 
+```
+  
+  
+
+
+  
